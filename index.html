@@ -1,0 +1,2058 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Mapbox Hover ve Click Interaction</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+    <style>
+        /* Mobil responsive */
+@media (max-width: 768px) {
+    body {
+        height: 100vh;
+        padding: 0;
+    }
+    
+    .container {
+        width: 100% !important;
+        height: 100vh !important;
+        flex-direction: column;
+        padding: 0;
+    }
+    
+    .main-content {
+        flex-direction: column !important;
+        height: 100% !important;
+    }
+    
+    #map {
+        width: 100% !important;
+        height: 60vh !important;
+        border-radius: 0;
+        margin: 0;
+    }
+    
+    #info-panel {
+        width: 100% !important;
+        height: 40vh !important;
+        border-radius: 0;
+        padding: 15px;
+        font-size: 12px;
+    }
+    
+    .timeline-container {
+        position: fixed !important;
+        bottom: 45vh !important;
+        left: 10px !important;
+        top: auto !important;
+        transform: none !important;
+        width: auto !important;
+        height: 50px !important;
+        background: rgba(255,255,255,0.9);
+        border-radius: 25px;
+        padding: 5px 15px;
+    }
+    
+    .timeline {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 15px;
+        height: 40px !important;
+    }
+    
+    .timeline::before {
+        display: none !important;
+    }
+    
+    .timeline-point {
+        padding: 0 !important;
+    }
+    
+    .timeline-dot {
+        width: 8px !important;
+        height: 8px !important;
+        margin-bottom: 0 !important;
+    }
+    
+    .timeline-year {
+        font-size: 9px !important;
+        margin-top: 2px;
+    }
+    
+    .timeline-line {
+        display: none !important;
+    }
+}
+        body { 
+            margin: 0; 
+            padding: 0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 1000px;
+            height: 650px;
+        }
+        #map { 
+            position: relative; 
+            width: 600px;
+            height: 600px;
+            border: 1px solid #4673a0;
+            border-radius: 8px;
+        }
+        .main-content {
+            display: flex;
+            height: 600px;
+        }
+        #info-panel {
+            width: 400px;
+            height: 600px;
+            background-color: #f6f7f9;
+            border: 1px solid #4673a0;
+            border-radius: 8px;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+        .info-content {
+            width: 100%;
+            max-width: 100%; 
+            display: none;
+        }
+        .info-content.active {
+            display: block;
+        }
+        .info-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #040d53;
+            text-align: center;
+            width: 100%;
+        }
+        .info-detail {
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #555;
+            text-align: justify;
+            width: 100%;
+        }
+        .info-image {
+            width: 100%;
+            max-width: 350px;
+            border-radius: 4px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .info-none {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            width: 100%;
+        }
+        .mapboxgl-popup {
+            max-width: 300px;
+            font: 12px/20px 'Montserrat', Montserrat, Montserrat;
+        }
+        /* Mapbox logosu ve atıfları için stil düzenlemeleri */
+        .mapboxgl-ctrl-bottom-right,
+        .mapboxgl-ctrl-bottom-left {
+            display: none !important;
+        }
+        .image-source {
+            font-size: 10px;
+            font-style: italic;
+            color: #666;
+            margin-top: 3px;
+            text-align: right;
+        }
+        
+        /* Timeline styling */
+       .timeline-container {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 400px;
+    z-index: 1000;
+    cursor: grab;
+}
+
+.timeline-container:active {
+    cursor: grabbing;
+}
+       .timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: #4673a0;
+    transform: translateX(-50%);
+}
+        .timeline-point {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    z-index: 2;
+    background: white;
+    padding: 5px 0;
+}
+        .timeline-dot {
+    width: 10px;
+    height: 10px;
+            border-radius: 50%;
+                    margin-bottom: 5px;
+            border: 2px solid #4673a0;
+            transition: all 0.3s ease;
+        }
+        .timeline-year {
+    font-size: 11px;
+    font-weight: 400;
+    color: #4673a0;
+    font-family: 'Roboto', sans-serif;
+}
+        .timeline-point.active .timeline-dot {
+            background-color: #040d53;
+            transform: scale(1.2);
+        }
+        .timeline-point.active .timeline-year {
+            color: #040d53;
+        }
+        .timeline-line {
+            flex-grow: 1;
+            height: 1px;
+            background-color: #4673a0;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="popupOverlay"></div>
+<div class="explosion-popup" id="explosionPopup">
+  <div class="explosion-popup-header">
+    <div class="explosion-popup-title">1917 Port Explosion</div>
+    <button class="explosion-popup-close" id="closePopupBtn">&times;</button>
+  </div>
+  <div class="explosion-popup-content">
+    <p>On September 6, 1917, a major explosion occurred at the port area. Several buildings were severely damaged including the Customs Building, Port Police Station, and Port Administration Building.</p>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/explosion_1917.jpg" alt="1917 Port Explosion" class="explosion-popup-image" onerror="this.style.display='none'">
+    <p>The explosion was caused by munitions being transported through the port during World War I. The buildings highlighted in red suffered major structural damage but were later rebuilt.</p>
+  </div>
+</div>
+
+<style>
+  .explosion-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    max-width: 90%;
+    background-color: white;
+    border: 1px solid #4673a0;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    display: none;
+  }
+  
+  .explosion-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .explosion-popup-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #040d53;
+  }
+  
+  .explosion-popup-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #999;
+  }
+  
+  .explosion-popup-content {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #555;
+  }
+  
+  .explosion-popup-image {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 4px;
+    margin: 10px 0;
+  }
+  
+  .overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 999;
+    display: none;
+  }
+</style>
+    <div class="container">
+        <div class="timeline-container">
+            <div class="timeline">
+                <div class="timeline-point active" data-year="1906">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-year">1906</div>
+                </div>
+                <div class="timeline-line"></div>
+                <div class="timeline-point" data-year="1913">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-year">1913</div>
+                </div>
+		<div class="timeline-line"></div>
+<div class="timeline-point" data-year="1917">
+    <div class="timeline-dot"></div>
+    <div class="timeline-year">1917</div>
+</div>
+<div class="timeline-line"></div>
+<div class="timeline-point" data-year="1930">
+    <div class="timeline-dot"></div>
+    <div class="timeline-year">1930</div>
+</div>
+<div class="timeline-line"></div>
+<div class="timeline-point" data-year="1960">
+    <div class="timeline-dot"></div>
+    <div class="timeline-year">1960</div>
+</div>
+<div class="timeline-line"></div>
+<div class="timeline-point" data-year="2020">
+    <div class="timeline-dot"></div>
+    <div class="timeline-year">2020</div>
+</div>
+
+                <!-- Add more timeline points here in the future -->
+                <!-- Example:
+                <div class="timeline-line"></div>
+                <div class="timeline-point" data-year="1917">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-year">1917</div>
+                </div>
+                <div class="timeline-line"></div>
+                <div class="timeline-point" data-year="1930">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-year">1930</div>
+                </div>
+                -->
+            </div>
+        </div>
+        <div class="main-content">
+            <div id="map"></div>
+            <div id="info-panel">
+                <div class="info-none">
+                   Click a building for details.
+                </div>
+                <div id="building-40" class="info-content">
+    <div class="info-title">Behiç Bey Lodgings</div>
+    <div class="info-detail">
+        <strong>Year of Service:</strong> 1920s (estimated)<br>
+        <strong>Architect:</strong> Unknown<br>
+        <strong>Purpose:</strong> Residential lodgings<br>
+        <p>• Built within the boundaries of the railway station facilities for accommodation purposes.</p>
+    </div>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Foto_31.jpg" alt="Behiç Bey Lodgings" class="info-image" onerror="this.style.display='none'">
+    <div class="image-source">Source: Atılgan Blog</div>
+</div>
+                <div id="building-21" class="info-content">
+                    <div class="info-title">First Station Building</div>
+                    <div class="info-detail">
+                        <strong>Year of Service: </strong> 1872<br>
+                        <strong>Architect:</strong> Giovanni Battista Barborini (possibly) <br>
+                        <strong>Structure:</strong> A two-story wooden building<br>
+                        <p> •  Until 1939, it existed together with Haydarpaşa Railway Station.</p> 
+                    </div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_13.jpg" alt="First Station Building" class="info-image">
+                    <div class="image-source">Source: İBB Atatürk Library, Rare Works Collection, Krt_012307</div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_7.jpg" alt="First Station Building" class="info-image">
+                    <div class="image-source">The renovated version with the addition of a third floor and a modified façade layout. Source: İBB Atatürk Library, Rare Works Collection, Krt_004423</div>
+                        <p> •  The renovated version with the addition of a third floor and a modified façade layout. </p> 
+                </div>
+                <div id="building-29" class="info-content">
+                    <div class="info-title">Power Plant</div>
+                    <div class="info-detail">
+                        <strong>Year of Service: </strong> 1903<br>
+                        <strong>Architect:</strong> Unknown <br>
+                        <strong>Structure:</strong> Two-storey <br>
+                        <p> •  It consists of two independent sections: a two-storey hangar that generates electricity and an office.</p> 
+                    </div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_8.jpg" alt="Power Plant" class="info-image">
+                    <div class="image-source">Source: İBB Atatürk Library, Rare Works Collection, Krt_004504</div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_18.jpg" alt="Power Plant" class="info-image">
+                    <div class="image-source">Source: "Istanbul University Rare Books Library,  https://nek.istanbul.edu.tr/ekos/FOTOGRAF/90533---0014.jpg.</div>
+                </div>
+                <div id="building-32" class="info-content">
+                    <div class="info-title">Silo A</div>
+                    <div class="info-detail">
+                        <strong>Year of Service: </strong> 1902<br>
+                        <strong>Architect:</strong> Unknown <br>
+                        <p> • In the years before reinforced concrete was widely used, it was built using this technique. It was used as a grain silo.</p> 
+                    </div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_9.jpg" alt="Silo A Historical" class="info-image">
+                    <div class="image-source">Source: İBB Atatürk Library, Rare Works Collection, Krt_004504</div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_10.jpg" alt="Silo A Current" class="info-image">
+                    <div class="image-source">Source: "Istanbul University Rare Books Library,  https://nek.istanbul.edu.tr/ekos/FOTOGRAF/90533---0014.jpg.</div>
+                </div>
+                <div id="building-25" class="info-content">
+                    <div class="info-title">Customs Building</div>
+                    <div class="info-detail">
+                        <strong>Year of Service: </strong> 1902<br>
+                        <strong>Architect:</strong> Emile Faracci (possibly)<br>
+                    </div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_15.jpg" alt="Customs Building" class="info-image">
+                    <div class="image-source">Source: Istanbul University Rare Books Library, https://nek.istanbul.edu.tr/ekos/FOTOGRAF/90533---0011.jpg.</div>
+                </div>
+                <div id="building-26" class="info-content">
+                    <div class="info-title"> Port Police Station</div>
+                    <div class="info-detail">
+                        <strong>Year of Service: </strong> 1903<br>
+                        <strong>Architect:</strong> Emile Faracci (possibly) <br>
+                    </div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_14.jpg" alt="Silo A Historical" class="info-image">
+                    <div class="image-source">Source: Istanbul University Rare Books Library, https://nek.istanbul.edu.tr/ekos/FOTOGRAF/90533---0010.jpg.</div>
+                </div>
+                <div id="building-28" class="info-content">
+                    <div class="info-title"> Port Administration Building</div>
+                    <div class="info-detail">
+                        <strong>Year of Service: </strong>Early 1900s<br>
+                        <strong>Architect:</strong> Unknown <br>
+                        In the years before reinforced concrete was widely used, it was built using this technique. It was used as a grain silo.
+                    </div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_17.jpg" alt="Port Administration Building Historical" class="info-image">
+                    <div class="image-source">Source: Istanbul University Rare Books Library, https://nek.istanbul.edu.tr/ekos/FOTOGRAF/90533---0012.jpg.</div>
+                </div>
+                <div id="building-8" class="info-content">
+                    <div class="info-title"> Muhacır Guest House</div>
+                    <div class="info-detail">
+                        <strong>Year of Service: </strong> 1903-1908<br>
+                        <strong>Architect:</strong> Architect Kemalettin <br>
+                        <strong>Structure:</strong> Masonry Building<br>
+                        <p>• The term 'Muhacir' refers to individuals who migrated to Turkey, either as part of population exchanges or unidirectional migration, from Balkan countries such as Greece, Bulgaria, Albania, and Yugoslavia. </p>
+                        <p> • It represents the First National Architectural Movement of Turkey.</p>  			
+                    </div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_11.jpg" alt="Muhacır Guest" class="info-image">
+                    <div class="image-source">Source: Istanbul University Rare Books Library, https://nek.istanbul.edu.tr/ekos/FOTOGRAF/90533---0011.jpg.</div>
+                </div>
+                <div id="building-5" class="info-content">
+                    <div class="info-title"> Military Outpost </div>
+                    <div class="info-detail">
+                        <strong>Year of Service: </strong> 1903<br>
+                        <strong>Architect:</strong> Emile Faracci<br>
+                        <p> • Railway tracks were used in the roof supports of the structure.</p>  <p> • Most of it has survived to the present day.</p> 
+                    </div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_16.jpg" alt="Silo A Historical" class="info-image">
+                    <div class="image-source">Source: Istanbul University Rare Books Library, https://nek.istanbul.edu.tr/ekos/FOTOGRAF/90533---0009.jpg.</div>
+                </div>
+                <div id="building-33" class="info-content">
+                    <div class="info-title"> Storage Facility </div>
+                    <div class="info-detail">
+                        <strong>Year of Service: </strong> Early 1900's
+                        <p> • Railway tracks were used in the roof supports of the structure.</p>  <p> • Most of it has survived to the present day.</p> 
+                    </div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_20.jpg" alt="Storage Facility" class="info-image">
+                    <div class="image-source">Source: Istanbul University Rare Books Library, https://nek.istanbul.edu.tr/ekos/FOTOGRAF/90533---0003.jpg</div>
+                    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_19.jpg" alt="Storage Facility" class="info-image">
+                    <div class="image-source">Source: İBB Atatürk Library, Rare Works Collection, Krt_006937</div>
+                </div>
+                <div id="building-88" class="info-content">
+    <div class="info-title">Silo D</div>
+    <div class="info-detail">
+        <strong>Year of Service:</strong> 1960<br>
+        <strong>Architect:</strong> Unknown<br>
+        <p>• The fourth silo built as part of the port expansion in 1960.</p>
+        <p>• Modern concrete construction technique was used for increased storage capacity.</p>
+    </div>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/silo_d_1960.jpg" alt="Silo D" class="info-image" onerror="this.style.display='none'">
+    <div class="image-source">Source: Port Authority Archives</div>
+</div>
+			<div id="building-500" class="info-content">
+    <div class="info-title">Haydarpaşa Train Station</div>
+    <div class="info-detail">
+        <strong>Year of Service:</strong> 1908<br>
+        <strong>Architect:</strong> Otto Ritter ve Helmuth Cuno<br>
+        <strong>Structure:</strong> Masonry and Stone Building<br>
+        <p>• Designed in Neo-Renaissance style, it's one of the iconic landmarks of Istanbul, historically serving as a gateway connecting Istanbul with Anatolia.</p>
+    </div>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/haydarpasa_station_historical.jpg" alt="Haydarpaşa Train Station Historical" class="info-image">
+    <div class="image-source">Source: İBB Atatürk Library, Rare Works Collection</div>
+</div>
+
+			<div id="building-35" class="info-content">
+    <div class="info-title">Silo</div>
+    <div class="info-detail">
+        <strong>Year of Service:</strong> 1907<br>
+        <p>• The third of four adjacent silos, constructed in 1907.</p>
+    </div>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_21.jpg" alt="Haydarpaşa Train Station Historical" class="info-image">
+    <div class="image-source">Source: İBB Atatürk Library, Rare Works Collection</div>
+   
+</div>
+
+<div id="building-25-1917" class="info-content">
+    <div class="info-title">Customs Building - 1917 Damage</div>
+    <div class="info-detail">
+        <strong>Year of Service: </strong> 1902<br>
+        <strong>Architect:</strong> Emile Faracci (possibly)<br>
+        <strong>Damage Status:</strong> <span style="color: #613230; font-weight: bold;">Completely destroyed in 1917 explosion.</span><br>
+        <p>• During World War I, the station and port area became a crucial center for weapons and supplies. </p>
+	     On September 6, 1917, ammunition loaded onto freight trains was hit by gunfire, causing a massive explosion.</p>
+        <p>• It suffered significant damage in the explosion and was subsequently demolished, not surviving to the present day.</p>
+	  <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_27.JPG" alt="Customs Building - 1917 Damage" class="info-image">
+    <div class="image-source">Source: SALT Research, AHISTDIV00164.</div>
+   
+    </div>
+
+</div><div id="building-26-1917" class="info-content">
+    <div class="info-title">Port Police Station</div>
+    <div class="info-detail">
+        <strong>Year of Service: </strong> 1903<br>
+        <strong>Architect:</strong> Emile Faracci (possibly) <br>
+        <strong>Damage Status:</strong> <span style="color: #613230; font-weight: bold;">Heavily damaged in the 1917 explosion</span><br>
+          <p>• During World War I, the station and port area became a crucial center for weapons and supplies. 
+	     On September 6, 1917, ammunition loaded onto freight trains was hit by gunfire, causing a massive explosion.</p>
+        <p>• It suffered significant damage in the explosion and was subsequently demolished, not surviving to the present day.</p>
+    </div>
+   </div>
+
+<div id="building-28-1917" class="info-content">
+    <div class="info-title">Port Administration Building - 1917 Damage</div>
+    <div class="info-detail">
+        <strong>Year of Service: </strong>Early 1900s<br>
+        <strong>Architect:</strong> Unknown <br>
+        <strong>Damage Status:</strong> <span style="color: #613230; font-weight: bold;">Damaged in the 1917 explosion</span><br>
+        p>• During World War I, the station and port area became a crucial center for weapons and supplies. 
+	     On September 6, 1917, ammunition loaded onto freight trains was hit by gunfire, causing a massive explosion.</p>
+        <p>• It suffered significant damage in the explosion and was subsequently demolished, not surviving to the present day. Today, a new building has been constructed in its place.</p>
+    </div>
+    </div>
+
+<div id="building-32-1917" class="info-content">
+    <div class="info-title">Silo A - 1917 Damage</div>
+    <div class="info-detail">
+        <strong>Year of Service: </strong> 1902<br>
+        <strong>Damage Status:</strong> <span style="color: #8F211D; font-weight: bold;">Damaged in the 1917 explosion</span><br>
+        <p>• The Silo structures suffered moderate damage during the 1917 explosion.</p>
+    </div>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_25.jpg" alt="Silo A Historical" class="info-image">
+    <div class="image-source">Source: İBB Atatürk Library, Rare Works Collection, Krt_004504</div>
+</div>
+
+<div id="building-30-1917" class="info-content">
+    <div class="info-title">Silo B - 1917 Damage</div>
+    <div class="info-detail">
+        <strong>Year of Service: </strong> 1906<br>
+        <strong>Damage Status:</strong> <span style="color: #8F211D; font-weight: bold;">Damaged in the 1917 explosion</span><br>
+      <p>• The Silo structures suffered moderate damage during the 1917 explosion.</p>
+    </div>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_26.jpg" alt="Silo A Historical" class="info-image">
+    <div class="image-source">Source: İBB Atatürk Library, Rare Works Collection</div>
+</div>
+
+<div id="building-35-1917" class="info-content">
+    <div class="info-title">Silo - 1917 Damage</div>
+    <div class="info-detail">
+        <strong>Year of Service: </strong> 1906<br>
+        <strong>Damage Status:</strong> <span style="color: #8F211D; font-weight: bold;">Damaged in the 1917 explosion</span><br>
+      <p>• The Silo structures suffered moderate damage during the 1917 explosion.</p>
+    </div>
+	<img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_22.jpg" alt="Silo A Historical" class="info-image">
+    <div class="image-source">Source: SALT Research, AHISTDIV00164.</div>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_28.JPG" alt="Silo A Historical" class="info-image">
+    <div class="image-source">Source: SALT Research, AHISTDIV00164.</div>
+</div>
+<div id="archaeology-info" class="info-content">
+    <div class="info-title">Archaeological Findings</div>
+    <div class="info-detail">
+        <strong>Discovery Period:</strong> 2018- Present (2025)<br>
+        <strong>Type:</strong> Ancient Khalkedon<br>
+        <p>• Archaeological excavations revealed important remains from ancient Khalkedon, the ancient name of Kadıköy.</p>
+        <p><strong>Key Discoveries:</strong></p>
+        <p>• A special residential building and bath complex</p>
+        <p>• Part of Saint Bassa Church</p>
+        <p>• Mass grave and Hellenistic period platform</p>
+        <p>• Amphoras, oil lamps, and various daily life artifacts</p>
+    </div>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_32.jpg" alt="Archaeological Findings" class="info-image" onerror="this.style.display='none'">
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_33.jpg" alt="Archaeological Findings" class="info-image" onerror="this.style.display='none'">
+    <div class="image-source">Source: Anadolu Ajans</div>
+</div>
+
+<div id="building-500-1917" class="info-content">
+	 <div class="info-title">Haydarpaşa Train Station - 1917 Damage</div>
+    <div class="info-detail">
+        <strong>Year of Service:</strong> 1908<br>
+        <strong>Architect:</strong> Otto Ritter ve Helmuth Cuno<br>
+        <strong>Damage Status:</strong> <span style="color: #8F211D; font-weight: bold;">Damaged in the 1917 explosion</span><br>
+       <p>• During World War I, the station and port area became a crucial center for weapons and supplies. 
+	     On September 6, 1917, ammunition loaded onto freight trains was hit by gunfire, causing a massive explosion.</p>
+    </div>
+        <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_24.jpg" alt="Haydarpaşa Train Station Historical" class="info-image">
+    <div class="image-source"> Source: L. Civelekoglu Blogspot, "4 Kasım – 104 Yıl Önce Bugün: Haydarpaşa," 2013.</div>
+    <img src="https://raw.githubusercontent.com/duzunlarr/Photos/main/Photo_29.JPG" alt="Haydarpaşa Train Station Historical" class="info-image">
+    <div class="image-source">After the explosion station without the roof. <br>Source: SALT Research, AHISTDIV00164.</div>
+</div>
+
+<div id="building-33-1917" class="info-content">
+    <div class="info-title">Storage Facility- 1917 Damage</div>
+    <div class="info-detail">
+        <strong>Year of Service: </strong> Early 1900's<br>
+        <strong>Damage Status:</strong> <span style="color: #8F211D; font-weight: bold;">Damaged in the 1917 explosion</span><br>
+    </div>
+</div>
+</div>
+
+            </div>
+            </div>
+        </div>
+    </div>
+    
+<script>
+// Tamamen yok olan binalar
+var destroyedIn1917Buildings = [25, 26, 28]; // Customs Building, Port Police Station, Port Administration Building
+
+// Hasar alan ama günümüze ulaşan binalar
+var damagedIn1917Buildings = [30, 32, 33, 35, 500]; // Silolar, Military Outpost, Haydarpaşa Train Station
+
+// Tıklanan binanın ID'sini saklamak için değişken
+var selectedBuildingId = null;
+var selectedLayer = null;
+
+// Tamamen etkileşimden hariç tutulacak binaların ID'leri
+var excludedBuildings = [1, 4, 19, 27, 14, 9, 16];
+
+// 1930 yılında gizlenecek binaların ID'leri
+var hiddenIn1930Buildings = [25, 26, 28];
+
+// 1913 yılında gizlenecek binaların ID'leri
+var hiddenIn1913Buildings = [1, 9, 14, 16];
+
+// 1913 yılında gösterilecek yeni binaların ID'leri
+var newIn1913Buildings = [500]; // Haydarpaşa Tren İstasyonu
+
+// 1960 yılında gizlenecek 1906 binalarının ID'leri
+var hiddenIn1960Buildings = [24, 23, 22, 21, 20, 19, 18, 17, 15, 13, 12, 11, 10, 7, 6, 4, 2, 1, 9, 14];
+
+// Şu anki seçili yıl
+var currentYear = "1906";
+
+
+
+mapboxgl.accessToken = 'pk.eyJ1IjoiZHV5Z3V6dW5sYXJyIiwiYSI6ImNtN3E0Z2NpNDBsaXgyaXI2ajZkNGw3bnUifQ.sP0P7Qt_KKVJ35fXkri2yg';
+
+// Haritayı oluştur
+var map = new mapboxgl.Map({
+    container: 'map', 
+    style: 'mapbox://styles/duyguzunlarr/cm7rvr8yo012w01s29tkp85k9',
+    center: [29.0232, 40.9985],
+    zoom: 15,
+    attributionControl: false
+});
+
+// Hover için popup
+var popup = new mapboxgl.Popup({
+    closeButton: false,
+    closeOnClick: false
+});
+
+function showInfoContent(id) {
+    // İşlem yapmadan önce ID'nin geçerli olduğundan emin olalım
+    if (id === undefined || id === null) {
+        console.log("Uyarı: Geçersiz ID için showInfoContent çağrıldı");
+        return;
+    }
+    
+    // Önce tüm içerikleri gizle
+    document.querySelectorAll('.info-content').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // 1917 yılında özel içerik gösterimi
+    if (currentYear === "1917") {
+        // Hasar almış veya yıkılmış tüm binalar için 1917 içeriğini kontrol et
+        if (damagedIn1917Buildings.includes(parseInt(id)) || destroyedIn1917Buildings.includes(parseInt(id))) {
+            const content1917 = document.getElementById(`building-${id}-1917`);
+            if (content1917) {
+                document.querySelector('.info-none').style.display = 'none';
+                content1917.classList.add('active');
+                console.log("1917 paneli gösteriliyor: building-" + id + "-1917");
+                return;
+            }
+        }
+    }
+    
+    // Normal içerik gösterme (1917'de özel içerik yoksa veya diğer yıllarda)
+    const content = document.getElementById(`building-${id}`);
+    if (content) {
+        document.querySelector('.info-none').style.display = 'none';
+        content.classList.add('active');
+    } else {
+        document.querySelector('.info-none').style.display = 'flex';
+    }
+}
+
+// updateBuildingColors fonksiyonundaki katman görünürlüğü ayarlayan kısmı şu şekilde değiştirin:
+
+function updateBuildingColors() {
+// 1906 binaları için filtre
+var filter1906 = ['!=', ['get', 'id'], -1]; // Varsayılan: tüm binaları göster
+
+// 1913, 1917, 1930 veya 1960 seçiliyse, gizlenmesi gereken binaları filtrele
+if (currentYear === "1913") {
+    filter1906 = ['!', ['in', ['to-number', ['get', 'id']], ['literal', hiddenIn1913Buildings]]];
+} else if (currentYear === "1917") {
+    filter1906 = ['!', ['in', ['to-number', ['get', 'id']], ['literal', hiddenIn1913Buildings]]];
+} else if (currentYear === "1930") {
+    var allHiddenBuildings = [...hiddenIn1913Buildings, ...hiddenIn1930Buildings];
+    filter1906 = ['!', ['in', ['to-number', ['get', 'id']], ['literal', allHiddenBuildings]]];
+} else if (currentYear === "1960") {
+    var allHiddenBuildings = [...hiddenIn1913Buildings, ...hiddenIn1930Buildings, ...hiddenIn1960Buildings];
+    filter1906 = ['!', ['in', ['to-number', ['get', 'id']], ['literal', allHiddenBuildings]]];
+}
+    
+    // 1906 katmanlarına filtre uygula
+    map.setFilter('1906binalarasil-7qmxa6', filter1906);
+    
+    // Seçilen yıla göre görünürlük ayarla
+var visibility1913 = (currentYear === "1913" || currentYear === "1917" || currentYear === "1930" || currentYear === "1960") ? 'visible' : 'none';
+var visibility1906 = (currentYear === "1906") ? 'visible' : 'none';
+    
+    // 1906 yılının (ve 1917 için) demiryolu katmanının görünürlüğünü ayarla
+    map.setLayoutProperty('1906railway-a8x6g4', 'visibility', visibility1906);
+    map.setLayoutProperty('1906constru-b0c14r', 'visibility', visibility1906);
+    
+    // ÖNEMLİ DEĞİŞİKLİK: buildings-1913-bwjt8u layer'ına özel filtre uygula
+if (currentYear === "1913" || currentYear === "1917" || currentYear === "1930" || currentYear === "1960") {
+    // 1913, 1917 veya 1930 yılında tüm binaları göster
+    map.setFilter('buildings-1913-bwjt8u', null);
+    } else {
+        // Diğer yıllarda sadece ID 800 olan binayı göster
+        map.setFilter('buildings-1913-bwjt8u', ['==', ['to-string', ['get', 'id']], '800']);
+    }
+    
+    // Her zaman görünür olmasını sağla
+    map.setLayoutProperty('buildings-1913-bwjt8u', 'visibility', 'visible');
+    
+    // 1913 demiryolu 1913, 1917 ve 1930 yıllarında görünür olsun
+	map.setLayoutProperty('railway-1913-ajkhho', 'visibility', visibility1913);
+    
+    // Tüm binaları varsayılan renge döndür
+    map.setPaintProperty('1906binalarasil-7qmxa6', 'fill-color', '#c8d5e3');
+    map.setPaintProperty('buildings-1913-bwjt8u', 'fill-color', '#c8d5e3');
+    
+    // 1917 yılı için renk ayarları - BİRLEŞTİRİLMİŞ KOD
+    if (currentYear === "1917") {
+        // 1906 binalarını kontrol et 
+        var expression1906 = ['case'];
+        
+        // Tamamen yok olan binaları koyu kırmızı yap
+        destroyedIn1917Buildings.forEach(function(id) {
+            expression1906.push(['==', ['get', 'id'], id]);
+            expression1906.push('#613230'); // Koyu kırmızı - yok olan binalar
+        });
+        
+        // Hasar alan ama günümüze ulaşan binaları daha açık kırmızı/turuncu yap
+        damagedIn1917Buildings.forEach(function(id) {
+    expression1906.push(['==', ['get', 'id'], id]);
+    expression1906.push('#8F211D'); // Yeni renk - hasar alan binalar
+});
+        
+        // Seçili olanları mavi yap
+        if (selectedBuildingId !== null && selectedBuildingId !== undefined && selectedLayer === '1906binalarasil-7qmxa6') {
+            expression1906.push(['==', ['get', 'id'], selectedBuildingId]);
+            expression1906.push('#040d53');
+        }
+        
+        // Diğer binaları normal renkte bırak
+        expression1906.push('#c8d5e3');
+        
+        map.setPaintProperty('1906binalarasil-7qmxa6', 'fill-color', expression1906);
+               
+        // 1913 binalarını da benzer şekilde kontrol et
+        var expression1913 = ['case'];
+        
+        // Tamamen yok olan binaları koyu kırmızı yap
+        destroyedIn1917Buildings.forEach(function(id) {
+            expression1913.push(['==', ['to-string', ['get', 'id']], id.toString()]);
+            expression1913.push('#613230'); // Koyu kırmızı - yok olan binalar
+        });
+        
+        // Hasar alan ama günümüze ulaşan binaları daha açık kırmızı/turuncu yap
+        damagedIn1917Buildings.forEach(function(id) {
+            expression1913.push(['==', ['to-string', ['get', 'id']], id.toString()]);
+            expression1913.push('#8F211D'); // Açık kırmızı/turuncu - hasar alan binalar
+        });
+        
+        // Seçili olanları mavi yap
+        if (selectedBuildingId !== null && selectedBuildingId !== undefined && selectedLayer === 'buildings-1913-bwjt8u') {
+            expression1913.push(['==', ['to-string', ['get', 'id']], selectedBuildingId.toString()]);
+            expression1913.push('#040d53');
+        }
+        
+        // Diğer binaları normal renkte bırak
+        expression1913.push('#c8d5e3');
+        
+        map.setPaintProperty('buildings-1913-bwjt8u', 'fill-color', expression1913);
+        
+    } 
+    else {
+        // 1917 dışındaki yıllarda opaklığı normal değerine geri getir
+        map.setPaintProperty('1906binalarasil-7qmxa6', 'fill-opacity', 1.0);
+        map.setPaintProperty('buildings-1913-bwjt8u', 'fill-opacity', 1.0);
+        
+        // Normal seçili bina vurgulama (1917 yılı değilse)
+        if (selectedBuildingId !== null && selectedBuildingId !== undefined) {
+            if (selectedLayer === '1906binalarasil-7qmxa6') {
+                // 1906 binaları için
+                map.setPaintProperty('1906binalarasil-7qmxa6', 'fill-color', [
+                    'case',
+                    ['==', ['get', 'id'], selectedBuildingId],
+                    '#040d53',  // Seçili bina rengi
+                    '#c8d5e3'   // Diğer binalar
+                ]);
+            } else if (selectedLayer === 'buildings-1913-bwjt8u') {
+                // 1913 binaları için - güvenlik kontrolü eklendi
+                try {
+                    // Özel durum: ID 500 (Haydarpaşa) için
+                    if (selectedBuildingId == 500) {
+                        map.setPaintProperty('buildings-1913-bwjt8u', 'fill-color', [
+                            'case',
+                            ['==', ['get', 'id'], '500'],
+                            '#040d53',  // Seçili bina rengi
+                            '#c8d5e3'   // Diğer binalar
+                        ]);
+                    } else {
+                        // Diğer binalar için
+                        map.setPaintProperty('buildings-1913-bwjt8u', 'fill-color', [
+                            'case',
+                            ['==', ['get', 'id'], selectedBuildingId],
+                            '#040d53',  // Seçili bina rengi
+                            '#c8d5e3'   // Diğer binalar
+                        ]);
+                    }
+                } catch (error) {
+                    console.error("Renk güncellemesi sırasında hata:", error);
+                }
+                } else if (selectedLayer === 'buildings-1960-layer') {
+        // 1960 binaları için
+        map.setPaintProperty('buildings-1960-layer', 'fill-color', [
+            'case',
+            ['==', ['get', 'id'], selectedBuildingId],
+            '#040d53',  // Seçili bina rengi
+            '#c8d5e3'   // Diğer binalar
+        ]);
+            }
+        }
+    }
+
+// 1930 katmanlarının görünürlüğünü kontrol et
+if (currentYear === "1930" || currentYear === "1960") {
+    map.setLayoutProperty('parcels-1930-layer', 'visibility', 'visible');
+    map.setLayoutProperty('buildings-1930-layer', 'visibility', 'visible');
+    map.setLayoutProperty('1906parsel-axl9oq', 'visibility', 'none');
+    map.setLayoutProperty('1906building-8yn31u', 'visibility', 'none');
+} else {
+    map.setLayoutProperty('parcels-1930-layer', 'visibility', 'none');
+    map.setLayoutProperty('buildings-1930-layer', 'visibility', 'none');
+    map.setLayoutProperty('1906parsel-axl9oq', 'visibility', 'visible');
+    map.setLayoutProperty('1906building-8yn31u', 'visibility', 'visible');
+}
+// 1960 katmanlarının görünürlüğünü kontrol et
+if (currentYear === "1960") {
+    map.setLayoutProperty('1906dolgu-35dikl', 'visibility', 'none');
+    map.setLayoutProperty('landfill-1960-layer', 'visibility', 'visible');
+    map.setLayoutProperty('1906kiyi-2b3yfo', 'visibility', 'none');
+    map.setLayoutProperty('coastline-1960-layer', 'visibility', 'visible');
+    map.setLayoutProperty('1906su-8qlmma', 'visibility', 'none');
+    map.setLayoutProperty('1906building-8yn31u', 'visibility', 'none');
+    map.setLayoutProperty('1906binalarasil-7qmxa6', 'visibility', 'visible');
+    map.setLayoutProperty('buildings-1960-layer', 'visibility', 'visible');
+    map.setPaintProperty('buildings-1960-layer', 'fill-color', '#c8d5e3');
+    map.setLayoutProperty('buildings-1930-layer', 'visibility', 'visible');
+    map.setLayoutProperty('railway-1960-layer', 'visibility', 'visible');
+    map.setLayoutProperty('railway-1913-ajkhho', 'visibility', 'none');
+    map.setLayoutProperty('railway-1913-updated-layer', 'visibility', 'visible');
+    map.setLayoutProperty('industrial-1960-layer', 'visibility', 'visible');
+    map.setLayoutProperty('roads-1960-stroke', 'visibility', 'visible');
+    map.setLayoutProperty('roads-1960-fill', 'visibility', 'visible');
+    map.setLayoutProperty('parcels-1930-layer', 'visibility', 'visible');
+    // 1960 yılında belirli parselleri gizle ve görünür yap
+map.setLayoutProperty('parcels-1930-layer', 'visibility', 'visible');
+map.setFilter('parcels-1930-layer', [
+    '!', ['in', ['to-number', ['get', 'id']], ['literal', [ 51, 52, 454, 456, 452, 451]]]
+]);
+    console.log("1960 dolgu, kıyı, su alanları, binalar, tren rayları ve parseller değiştirildi");
+} else {
+    map.setLayoutProperty('1906dolgu-35dikl', 'visibility', 'visible');
+    map.setLayoutProperty('landfill-1960-layer', 'visibility', 'none');
+    map.setLayoutProperty('1906kiyi-2b3yfo', 'visibility', 'visible');
+    map.setLayoutProperty('coastline-1960-layer', 'visibility', 'none');
+    map.setLayoutProperty('1906su-8qlmma', 'visibility', 'visible');
+    map.setLayoutProperty('buildings-1960-layer', 'visibility', 'none');
+    map.setPaintProperty('buildings-1960-layer', 'fill-color', '#c8d5e3');
+    map.setLayoutProperty('railway-1960-layer', 'visibility', 'none');
+    map.setLayoutProperty('railway-1913-ajkhho', 'visibility', 'visible');
+    map.setLayoutProperty('railway-1913-updated-layer', 'visibility', 'none');
+    map.setLayoutProperty('industrial-1960-layer', 'visibility', 'none');
+    map.setLayoutProperty('roads-1960-stroke', 'visibility', 'none');
+    map.setLayoutProperty('roads-1960-fill', 'visibility', 'none');
+    // Diğer yıllarda tüm parselleri göster
+    map.setFilter('parcels-1930-layer', null);
+}
+// 2020 katmanlarının görünürlüğünü kontrol et
+if (currentYear === "2020") {
+    // TÜM ESKİ KATMANLARI KAPAT
+    
+    // 1906 katmanları
+    map.setLayoutProperty('1906dolgu-35dikl', 'visibility', 'none');
+    map.setLayoutProperty('1906kiyi-2b3yfo', 'visibility', 'none');
+    map.setLayoutProperty('1906su-8qlmma', 'visibility', 'none');
+    map.setLayoutProperty('1906binalarasil-7qmxa6', 'visibility', 'none');
+    map.setLayoutProperty('1906railway-a8x6g4', 'visibility', 'none');
+    map.setLayoutProperty('1906constru-b0c14r', 'visibility', 'none');
+    map.setLayoutProperty('1906parsel-axl9oq', 'visibility', 'none');
+    map.setLayoutProperty('1906building-8yn31u', 'visibility', 'none');
+    
+    // 1913 katmanları
+    map.setLayoutProperty('buildings-1913-bwjt8u', 'visibility', 'none');
+    map.setLayoutProperty('railway-1913-ajkhho', 'visibility', 'none');
+    map.setLayoutProperty('railway-1913-updated-layer', 'visibility', 'none');
+    
+    // 1930 katmanları
+    map.setLayoutProperty('buildings-1930-layer', 'visibility', 'none');
+    map.setLayoutProperty('parcels-1930-layer', 'visibility', 'none');
+    
+    // 1960 katmanları
+    map.setLayoutProperty('buildings-1960-layer', 'visibility', 'none');
+    map.setLayoutProperty('landfill-1960-layer', 'visibility', 'none');
+    map.setLayoutProperty('coastline-1960-layer', 'visibility', 'none');
+    map.setLayoutProperty('railway-1960-layer', 'visibility', 'none');
+    map.setLayoutProperty('industrial-1960-layer', 'visibility', 'none');
+    map.setLayoutProperty('roads-1960-stroke', 'visibility', 'none');
+    map.setLayoutProperty('roads-1960-fill', 'visibility', 'none');
+    
+    // 2020 katmanları (şimdilik sadece mevcut olanlar)
+    map.setLayoutProperty('coastline-2020-layer', 'visibility', 'visible');
+    map.setLayoutProperty('landfill-2020-layer', 'visibility', 'visible');
+    map.setLayoutProperty('archaeological-2020-layer', 'visibility', 'visible');
+    map.setLayoutProperty('railway-2020-layer', 'visibility', 'visible');
+    map.setLayoutProperty('roads-2020-layer', 'visibility', 'visible');
+    map.setLayoutProperty('buildings-2020-layer', 'visibility', 'visible'); // ← Bu satırı ekleyin
+    map.setLayoutProperty('roads-residential-2020-layer', 'visibility', 'visible');
+    map.setLayoutProperty('railway-platform-2020-layer', 'visibility', 'visible');
+    console.log("2020: Tüm eski katmanlar kapatıldı, sadece 2020 katmanları açık");
+} else {
+    // 2020 olmayan yıllarda 2020 katmanlarını kapat
+    map.setLayoutProperty('coastline-2020-layer', 'visibility', 'none');
+    map.setLayoutProperty('landfill-2020-layer', 'visibility', 'none');
+    map.setLayoutProperty('archaeological-2020-layer', 'visibility', 'none');
+    map.setLayoutProperty('railway-2020-layer', 'visibility', 'none'); // ← Bu satırı ekleyin
+    map.setLayoutProperty('roads-2020-layer', 'visibility', 'none');
+    map.setLayoutProperty('buildings-2020-layer', 'visibility', 'none'); // ← Bu satırı ekleyin
+    map.setLayoutProperty('roads-residential-2020-layer', 'visibility', 'none');
+    map.setLayoutProperty('railway-platform-2020-layer', 'visibility', 'none');
+}
+
+}
+
+// Timeline nokta tıklama işlevi
+// Timeline nokta tıklama işlevi
+function handleTimelineClick(event) {
+    // Önceki active sınıfını kaldır
+    document.querySelectorAll('.timeline-point').forEach(point => {
+        point.classList.remove('active');
+    });
+    
+    // Tıklanan noktaya active sınıfı ekle
+    event.currentTarget.classList.add('active');
+    
+    // Seçilen yılı güncelle
+    currentYear = event.currentTarget.getAttribute('data-year');
+    console.log("Yıl değiştirildi: " + currentYear);
+    
+    // Seçili binayı temizle
+    selectedBuildingId = null; 
+    selectedLayer = null;
+    
+    // Bilgi panelini temizle
+    document.querySelector('.info-none').style.display = 'flex';
+    document.querySelectorAll('.info-content').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+   
+  
+    
+    // Bina renkleri ve katman görünürlüğünü güncelle
+    updateBuildingColors();
+}
+
+function getPopupContentById(id) {
+    // ID null veya undefined kontrolü
+    if (id === undefined || id === null) {
+        return '<div style="text-align: center;"><strong>Bilinmeyen Bina</strong><br>Bu yapı hakkında bilgi bulunmamaktadır.</div>';
+    }
+    
+    // Her ID için farklı içerik
+    var contents = {
+        2: "<strong>Offices & Store</strong>",
+        3: "<strong>Mineral Water Warehouse</strong>",
+        5: "<strong>Military Outpost </strong><br>1903",
+        6: "<strong>Offices</strong>",
+        7: "<strong>Forging Workshop</strong>",
+        8: "<strong>Muhacır Guest House</strong><br>1903<br><em>Click for more information</em>",
+        10: "<strong>Hotel</strong>",
+        11: "<strong>Locomotive Depot</strong>",
+        12: "<strong>Staff Housing</strong>",
+        13: "<strong>Housing</strong>",
+        15: "<strong>Offices & Bakery</strong>",
+        17: "<strong>Theatre</strong>",
+        18: "<strong>Tool Depot</strong>",
+        20: "<strong>Wagon Shed</strong>",
+        21: "<strong>First Station Building</strong><br>1872<br><em>Click for more information</em>",
+        22: "<strong>Restaurant</strong>",
+        23: "<strong>Restaurants & Cafés</strong>",
+        24: "<strong>Offices</strong>",
+        25: "<strong>Customs Building</strong><br>1902<br><em>Click for more information</em>",
+        26: "<strong>Port Police Station</strong><br>1903<br><em>Click for more information</em>",
+        28: "<strong>Port Administration Building</strong><br><em>Click for more information</em>",
+        29: "<strong>Power Plant</strong><br>1903<br><em>Click for more information</em>",
+        30: "<strong>Silo B</strong><br>1906",
+        31: "<strong>Brasserie</strong>",
+        32: "<strong>Silo A</strong><br>1902<br><em>Click for more information</em>",
+        33: "<strong>Storage Facility</strong><br><em>Click for more information</em>",
+        35: "<strong>Silo</strong><br>1907<br><em>Click for more information</em>",
+         40: "<strong>Behiç Bey Lodgings</strong><br>1920s<br><em>Click for more information</em>", // ← Bu satırı ekleyin
+        88: "<strong>Silo D</strong><br><em>Click for more information</em>",
+        200: "<strong>Haydarpaşa Ferry Terminal</strong><br>1907<br><em>Click for more information</em>",
+        500: "<strong>Haydarpaşa Train Station</strong><br>1908<br><em>Click for more information</em>",
+        800: "<strong>Breakwater</strong><br>1907<br><em>Click for more information</em>"
+    };
+    
+    // 1917 yılı için tamamen yok olan binalar için özel içerik
+    if (currentYear === "1917" && destroyedIn1917Buildings.includes(parseInt(id))) {
+        var baseContent = contents[id] || "<strong>ID " + id + "</strong>";
+        return '<div style="text-align: center;">' + baseContent + '<br><span style="color: #613230; font-weight: bold;">Completely destroyed in the 1917 explosion</span></div>';
+    }
+
+    // 1917 yılı için hasar alan ama günümüze ulaşan binalar için özel içerik
+    if (currentYear === "1917" && damagedIn1917Buildings.includes(parseInt(id))) {
+        var baseContent = contents[id] || "<strong>ID " + id + "</strong>";
+        return '<div style="text-align: center;">' + baseContent + '<br><span style="color: #8F211D; font-weight: bold;">Damaged in the 1917 explosion</span></div>';
+    }
+    
+    // İçeriği div içine alıp ortalayarak döndür
+    var content = contents[id] || "<strong>ID " + id + "</strong><br>Bu yapı hakkında bilgi bulunmamaktadır.";
+    return '<div style="text-align: center;">' + content + '</div>';
+}
+
+// Harita yüklendiğinde
+map.on('load', function() {
+    console.log("Harita yüklendi");
+    // 1930 binalarına hover efekti
+map.on('mousemove', 'buildings-1930-layer', function(e) {
+    var features = map.queryRenderedFeatures(e.point, { layers: ['buildings-1930-layer'] });
+    
+    if (!features.length) return;
+    
+    var feature = features[0];
+    var polygonId = feature.properties.id;
+    
+    // ID null veya undefined kontrolü
+    if (polygonId === undefined || polygonId === null) {
+        map.getCanvas().style.cursor = '';
+        popup.remove();
+        return;
+    }
+    
+    // Sadece ID 40 için hover efekti
+    if (parseInt(polygonId) !== 40) {
+        map.getCanvas().style.cursor = '';
+        popup.remove();
+        return;
+    }
+    
+    // İmleci el şekline dönüştür
+    map.getCanvas().style.cursor = 'pointer';
+    
+    // Popup içeriğini oluştur
+    var popupContent = getPopupContentById(polygonId);
+    
+    // Popup'ı göster
+    popup.setLngLat(e.lngLat)
+        .setHTML(popupContent)
+        .addTo(map);
+    
+    // Hover efekti
+    map.setPaintProperty('buildings-1930-layer', 'fill-color', [
+        'case',
+        ['==', ['get', 'id'], polygonId],
+        '#040d53',  // Hover yapılan bina rengi
+        '#c8d5e3'   // Diğer binalar
+    ]);
+});
+
+// 1930 binalarından fare ayrıldığında
+map.on('mouseleave', 'buildings-1930-layer', function() {
+    map.getCanvas().style.cursor = '';
+    popup.remove();
+    
+    // Renkleri sıfırla
+    map.setPaintProperty('buildings-1930-layer', 'fill-color', '#c8d5e3');
+});
+
+// 1930 binasına tıklandığında
+map.on('click', 'buildings-1930-layer', function(e) {
+    var features = map.queryRenderedFeatures(e.point, { layers: ['buildings-1930-layer'] });
+    
+    if (!features.length) return;
+    
+    var feature = features[0];
+    var polygonId = feature.properties.id;
+    
+    // ID null veya undefined kontrolü
+    if (polygonId === undefined || polygonId === null) {
+        return;
+    }
+    
+    // Sadece ID 40 için tıklama efekti
+    if (parseInt(polygonId) !== 40) {
+        return;
+    }
+    
+    // Eğer zaten seçili olan binaya tıklandıysa, seçimi kaldır
+    if (polygonId == selectedBuildingId && selectedLayer === 'buildings-1930-layer') {
+        selectedBuildingId = null;
+        selectedLayer = null;
+        document.querySelector('.info-none').style.display = 'flex';
+        document.querySelectorAll('.info-content').forEach(el => {
+            el.classList.remove('active');
+        });
+    } else {
+        // Yeni bir bina seçildi
+        selectedBuildingId = polygonId;
+        selectedLayer = 'buildings-1930-layer';
+        showInfoContent(polygonId);
+    }
+    
+    // Renkleri güncelle
+    updateBuildingColors();
+});
+    // 1960 binalarına hover efekti
+map.on('mousemove', 'buildings-1960-layer', function(e) {
+    var features = map.queryRenderedFeatures(e.point, { layers: ['buildings-1960-layer'] });
+    
+    if (!features.length) return;
+    
+    var feature = features[0];
+    var polygonId = feature.properties.id;
+    
+    // ID null veya undefined kontrolü
+    if (polygonId === undefined || polygonId === null) {
+        console.log("1960 Bina ID'si bulunamadı:", feature.properties);
+        map.getCanvas().style.cursor = '';
+        popup.remove();
+        return;
+    }
+    
+    // Hariç tutulan binalardan biriyse işlem yapma
+    if (excludedBuildings.includes(parseInt(polygonId))) {
+        map.getCanvas().style.cursor = '';
+        popup.remove();
+        return;
+    }
+    
+    // İmleci el şekline dönüştür
+    map.getCanvas().style.cursor = 'pointer';
+    
+    // Popup içeriğini oluştur
+    var popupContent = getPopupContentById(polygonId);
+    
+    // Popup'ı göster
+    popup.setLngLat(e.lngLat)
+        .setHTML(popupContent)
+        .addTo(map);
+    
+    // Hover efekti
+    map.setPaintProperty('buildings-1960-layer', 'fill-color', [
+        'case',
+        ['==', ['get', 'id'], polygonId],
+        '#040d53',  // Hover yapılan bina rengi
+        '#c8d5e3'   // Diğer binalar
+    ]);
+});
+
+// 1960 binalarından fare ayrıldığında
+map.on('mouseleave', 'buildings-1960-layer', function() {
+    map.getCanvas().style.cursor = '';
+    popup.remove();
+    
+    // Renkleri sıfırla
+    map.setPaintProperty('buildings-1960-layer', 'fill-color', '#c8d5e3');
+});
+
+// 1960 binasına tıklandığında
+map.on('click', 'buildings-1960-layer', function(e) {
+    var features = map.queryRenderedFeatures(e.point, { layers: ['buildings-1960-layer'] });
+    
+    if (!features.length) return;
+    
+    var feature = features[0];
+    var polygonId = feature.properties.id;
+    
+    // ID null veya undefined kontrolü
+    if (polygonId === undefined || polygonId === null) {
+        console.log("Tıklanan 1960 bina ID'si bulunamadı:", feature.properties);
+        return;
+    }
+    
+    // Hariç tutulan binalardan biriyse işlem yapma
+    if (excludedBuildings.includes(parseInt(polygonId))) {
+        return;
+    }
+    
+    // Eğer zaten seçili olan binaya tıklandıysa, seçimi kaldır
+    if (polygonId == selectedBuildingId && selectedLayer === 'buildings-1960-layer') {
+        selectedBuildingId = null;
+        selectedLayer = null;
+        document.querySelector('.info-none').style.display = 'flex';
+        document.querySelectorAll('.info-content').forEach(el => {
+            el.classList.remove('active');
+        });
+    } else {
+        // Yeni bir bina seçildi
+        selectedBuildingId = polygonId;
+        selectedLayer = 'buildings-1960-layer';
+        showInfoContent(polygonId);
+    }
+    
+    // Renkleri güncelle
+    updateBuildingColors();
+});
+    // 1906 binalarına hover efekti
+    map.on('mousemove', '1906binalarasil-7qmxa6', function(e) {
+        var features = map.queryRenderedFeatures(e.point, { layers: ['1906binalarasil-7qmxa6'] });
+        
+        if (!features.length) return;
+        
+        var feature = features[0];
+        var polygonId = feature.properties.id;
+        
+        // ID null veya undefined kontrolü
+        if (polygonId === undefined || polygonId === null) {
+            console.log("Bina ID'si bulunamadı:", feature.properties);
+            map.getCanvas().style.cursor = '';
+            popup.remove();
+            return;
+        }
+        
+        // Hariç tutulan binalardan biriyse işlem yapma
+        if (excludedBuildings.includes(parseInt(polygonId))) {
+            map.getCanvas().style.cursor = '';
+            popup.remove();
+            return;
+        }
+        
+        // 1913 yılında gizlenen bir binaya tıklandıysa işlem yapma
+        if (currentYear === "1913" && hiddenIn1913Buildings.includes(parseInt(polygonId))) {
+            map.getCanvas().style.cursor = '';
+            popup.remove();
+            return;
+        }
+        
+        // İmleci el şekline dönüştür
+        map.getCanvas().style.cursor = 'pointer';
+        
+        // Popup içeriğini oluştur
+        var popupContent = getPopupContentById(polygonId);
+        
+        // Popup'ı göster
+        popup.setLngLat(e.lngLat)
+            .setHTML(popupContent)
+            .addTo(map);
+        
+        // 1917 yılında hover yaparken renkleri koruma
+if (currentYear === "1917") {
+    var expression = ['case'];
+    
+    // Hover yapılan binayı mavi yap
+    expression.push(['==', ['get', 'id'], polygonId]);
+    expression.push('#040d53'); // Mavi hover rengi
+    
+    // Yok olan binaları koyu kırmızı yap (hover yapılan hariç)
+    destroyedIn1917Buildings.forEach(function(id) {
+        if (id != polygonId) { // Hover yapılmayan binalar
+            expression.push(['==', ['get', 'id'], id]);
+            expression.push('#613230'); // Yeni renk - yok olan binalar
+        }
+    });
+    
+    // Hasar alan binaları parlak kırmızı yap (hover yapılan hariç)
+    damagedIn1917Buildings.forEach(function(id) {
+        if (id != polygonId) { // Hover yapılmayan binalar
+            expression.push(['==', ['get', 'id'], id]);
+            expression.push('#8F211D'); // Yeni renk - hasar alan binalar
+        }
+    });
+    
+    // Diğer binaları normal renkte bırak
+    expression.push('#c8d5e3');
+    
+    map.setPaintProperty('1906binalarasil-7qmxa6', 'fill-color', expression);
+} else {
+            // Normal hover efekti
+            map.setPaintProperty('1906binalarasil-7qmxa6', 'fill-color', [
+                'case',
+                ['==', ['get', 'id'], polygonId],
+                '#040d53',  // Hover yapılan bina rengi
+                '#c8d5e3'   // Diğer binalar
+            ]);
+        }
+    });
+    
+    // 1906 binalarından fare ayrıldığında
+    map.on('mouseleave', '1906binalarasil-7qmxa6', function() {
+        map.getCanvas().style.cursor = '';
+        popup.remove();
+        
+        // Sadece seçili binanın rengini koru
+        updateBuildingColors();
+    });
+    
+    // 1906 binasına tıklandığında
+    map.on('click', '1906binalarasil-7qmxa6', function(e) {
+        var features = map.queryRenderedFeatures(e.point, { layers: ['1906binalarasil-7qmxa6'] });
+        
+        if (!features.length) return;
+        
+        var feature = features[0];
+        var polygonId = feature.properties.id;
+        
+        // ID null veya undefined kontrolü
+        if (polygonId === undefined || polygonId === null) {
+            console.log("Tıklanan bina ID'si bulunamadı:", feature.properties);
+            return;
+        }
+        
+        // Hariç tutulan binalardan biriyse işlem yapma
+        if (excludedBuildings.includes(parseInt(polygonId))) {
+            return;
+        }
+        
+        // 1913 yılında gizlenen bir binaya tıklandıysa işlem yapma
+        if (currentYear === "1913" && hiddenIn1913Buildings.includes(parseInt(polygonId))) {
+            return;
+        }
+        
+        // Eğer zaten seçili olan binaya tıklandıysa, seçimi kaldır
+        if (polygonId == selectedBuildingId && selectedLayer === '1906binalarasil-7qmxa6') {
+            selectedBuildingId = null;
+            selectedLayer = null;
+            document.querySelector('.info-none').style.display = 'flex';
+            document.querySelectorAll('.info-content').forEach(el => {
+                el.classList.remove('active');
+            });
+        } else {
+            // Yeni bir bina seçildi
+            selectedBuildingId = polygonId;
+            selectedLayer = '1906binalarasil-7qmxa6';
+            showInfoContent(polygonId);
+        }
+        
+        // Renkleri güncelle
+        updateBuildingColors();
+    });
+    
+    // 1913 binalarına hover efekti
+    map.on('mousemove', 'buildings-1913-bwjt8u', function(e) {
+        var features = map.queryRenderedFeatures(e.point, { layers: ['buildings-1913-bwjt8u'] });
+        
+        if (!features.length) return;
+        
+        var feature = features[0];
+        console.log("1913 bina özellikleri:", feature.properties);
+        var polygonId = feature.properties.id;
+        
+        // ID undefined veya null kontrolü
+        if (polygonId === undefined || polygonId === null) {
+            // Bu özel bir durum olabilir - Haydarpaşa İstasyonu
+            console.log("ID özelliği bulunamadı, Haydarpaşa Tren İstasyonu olabilir.");
+            
+            // Haydarpaşa Tren İstasyonu olarak kabul edelim
+            polygonId = 500;
+        }
+        
+        // Hariç tutulan binalardan biriyse işlem yapma
+        if (excludedBuildings.includes(parseInt(polygonId))) {
+            map.getCanvas().style.cursor = '';
+            popup.remove();
+            return;
+        }
+        
+        // İmleci el şekline dönüştür
+        map.getCanvas().style.cursor = 'pointer';
+        
+        // Popup içeriğini oluştur
+        var popupContent = getPopupContentById(polygonId);
+        
+        // Popup'ı göster
+        popup.setLngLat(e.lngLat)
+            .setHTML(popupContent)
+            .addTo(map);
+        
+       // 1917 yılında hover yaparken renkleri koruma
+if (currentYear === "1917") {
+    var expression = ['case'];
+    
+    // Hover yapılan binayı mavi yap
+    expression.push(['==', ['to-string', ['get', 'id']], polygonId.toString()]);
+    expression.push('#040d53'); // Mavi hover rengi
+    
+    // Yok olan binaları koyu kırmızı yap (hover yapılan hariç)
+    destroyedIn1917Buildings.forEach(function(id) {
+        if (id != polygonId) { // Hover yapılmayan binalar
+            expression.push(['==', ['to-string', ['get', 'id']], id.toString()]);
+            expression.push('#613230'); // Yeni renk - yok olan binalar
+        }
+    });
+    
+    // Hasar alan binaları parlak kırmızı yap (hover yapılan hariç)
+    damagedIn1917Buildings.forEach(function(id) {
+        if (id != polygonId) { // Hover yapılmayan binalar
+            expression.push(['==', ['to-string', ['get', 'id']], id.toString()]);
+            expression.push('#8F211D'); // Yeni renk - hasar alan binalar
+        }
+    });
+    
+    // Diğer binaları normal renkte bırak
+    expression.push('#c8d5e3');
+    
+    map.setPaintProperty('buildings-1913-bwjt8u', 'fill-color', expression);
+}
+        // Özel durum: ID 500 (Haydarpaşa) için
+        else if (polygonId == 500) {
+            // Haydarpaşa İstasyonu için özel durum
+            map.setPaintProperty('buildings-1913-bwjt8u', 'fill-color', [
+                'case',
+                ['==', ['get', 'id'], '500'],
+                '#040d53',  // Hover yapılan bina rengi
+                '#c8d5e3'   // Diğer binalar
+            ]);
+        } else {
+            // Diğer binalar için normal işlem
+            map.setPaintProperty('buildings-1913-bwjt8u', 'fill-color', [
+                'case',
+                ['==', ['get', 'id'], polygonId],
+                '#040d53',  // Hover yapılan bina rengi
+                '#c8d5e3'   // Diğer binalar
+            ]);
+        }
+    });
+    
+    // 1913 binalarından fare ayrıldığında
+    map.on('mouseleave', 'buildings-1913-bwjt8u', function() {
+        map.getCanvas().style.cursor = '';
+        popup.remove();
+        
+        // Sadece seçili binanın rengini koru
+        updateBuildingColors();
+    });
+
+    // ← BURAYA EKLEYİN - Başlangıç
+// 1930 parcelleri için hover efekti
+map.on('mousemove', 'parcels-1930-layer', function(e) {
+    // 1960 yılında hover'ı devre dışı bırak
+    if (currentYear === "1960") {
+        return;
+    }
+    
+    var features = map.queryRenderedFeatures(e.point, { layers: ['parcels-1930-layer'] });
+    if (!features.length) return;
+    
+    var parcelId = features[0].properties.id;
+    
+    // İmleci el şekline dönüştür
+    map.getCanvas().style.cursor = 'pointer';
+    
+    // Popup içeriğini oluştur
+    var popupContent;
+    if (parcelId == '451' || parcelId == '452') {
+        popupContent = '<div style="text-align: center;"><strong>Haydarpaşa Meadow</strong></div>';
+    } else {
+        popupContent = '<div style="text-align: center;"><strong>1930 Development</strong><br>Industrial and residential growth shaped this area around the port and rail station.</div>';
+    }
+    
+    // Popup'ı göster
+    popup.setLngLat(e.lngLat)
+        .setHTML(popupContent)
+        .addTo(map);
+});
+
+// 1930 parcellerinden fare ayrıldığında
+map.on('mouseleave', 'parcels-1930-layer', function() {
+    map.getCanvas().style.cursor = '';
+    popup.remove();
+});
+// 1960 endüstriyel alanlar için hover efekti
+map.on('mousemove', 'industrial-1960-layer', function(e) {
+    // Önce bina var mı kontrol et
+    var buildingFeatures = map.queryRenderedFeatures(e.point, { 
+        layers: ['1906binalarasil-7qmxa6', 'buildings-1930-layer', 'buildings-1960-layer', 'buildings-1913-bwjt8u'] 
+    });
+    
+    // Eğer bina varsa industrial hover'ı çalıştırma
+    if (buildingFeatures.length > 0) {
+        return;
+    }
+    
+    // İmleci el şekline dönüştür
+    map.getCanvas().style.cursor = 'pointer';
+    
+    // Popup içeriğini oluştur
+    var popupContent = '<div style="text-align: center;"><strong>Industrial Area</strong></div>';
+    
+    // Popup'ı göster
+    popup.setLngLat(e.lngLat)
+        .setHTML(popupContent)
+        .addTo(map);
+});
+
+// 1960 endüstriyel alanlardan fare ayrıldığında
+map.on('mouseleave', 'industrial-1960-layer', function() {
+    map.getCanvas().style.cursor = '';
+    popup.remove();
+});
+// ← BURAYA EKLEYİN - Bitiş
+// 2020 arkeolojik buluntular için hover efekti
+map.on('mousemove', 'archaeological-2020-layer', function(e) {
+    // İmleci el şekline dönüştür
+    map.getCanvas().style.cursor = 'pointer';
+    
+    // Popup içeriğini oluştur
+    var popupContent = '<div style="text-align: center;"><strong>Archaeological Findings</strong><br><em>Click for more information</em></div>'; // ← Bu satırı güncelleyin
+    
+    // Popup'ı göster
+    popup.setLngLat(e.lngLat)
+        .setHTML(popupContent)
+        .addTo(map);
+});
+
+// 2020 arkeolojik buluntulardan fare ayrıldığında
+map.on('mouseleave', 'archaeological-2020-layer', function() {
+    map.getCanvas().style.cursor = '';
+    popup.remove();
+});
+
+// 2020 arkeolojik buluntulara tıklandığında
+map.on('click', 'archaeological-2020-layer', function(e) {
+    console.log("Arkeolojik alana tıklandı!"); // ← Bu satırı ekleyin
+    
+    // Seçili binayı temizle (çünkü bu farklı bir katman türü)
+    selectedBuildingId = null;
+    selectedLayer = null;
+    
+    // Arkeolojik buluntu bilgisini göster
+    document.querySelector('.info-none').style.display = 'none';
+    document.querySelectorAll('.info-content').forEach(el => {
+        el.classList.remove('active');
+    });
+    
+    // Arkeolojik buluntu için özel içerik göster
+    var archaeologyContent = document.getElementById('archaeology-info');
+    if (archaeologyContent) {
+        archaeologyContent.classList.add('active');
+        console.log("Arkeoloji paneli gösterildi"); // ← Bu satırı ekleyin
+    } else {
+        console.log("Arkeoloji paneli bulunamadı!"); // ← Bu satırı ekleyin
+    }
+});
+
+    
+    // 1913 binasına tıklandığında
+    map.on('click', 'buildings-1913-bwjt8u', function(e) {
+        var features = map.queryRenderedFeatures(e.point, { layers: ['buildings-1913-bwjt8u'] });
+        
+        if (!features.length) return;
+        
+        var feature = features[0];
+        var polygonId = feature.properties.id;
+        
+        // ID undefined veya null kontrolü
+        if (polygonId === undefined || polygonId === null) {
+            // Bu özel bir durum olabilir - Haydarpaşa İstasyonu
+            console.log("Tıklanan binanın ID'si bulunamadı, Haydarpaşa Tren İstasyonu olabilir.");
+            polygonId = 500;
+        }
+        
+        // Hariç tutulan binalardan biriyse işlem yapma
+        if (excludedBuildings.includes(parseInt(polygonId))) {
+            return;
+        }
+        
+        // Eğer zaten seçili olan binaya tıklandıysa, seçimi kaldır
+        if (polygonId == selectedBuildingId && selectedLayer === 'buildings-1913-bwjt8u') {
+            selectedBuildingId = null;
+            selectedLayer = null;
+            document.querySelector('.info-none').style.display = 'flex';
+            document.querySelectorAll('.info-content').forEach(el => {
+                el.classList.remove('active');
+            });
+        } else {
+            // Yeni bir bina seçildi
+            selectedBuildingId = polygonId;
+            selectedLayer = 'buildings-1913-bwjt8u';
+            showInfoContent(polygonId);
+        }
+        
+        // Renkleri güncelle
+        updateBuildingColors();
+    });
+    
+// Haritanın boş kısmına tıklandığında
+map.on('click', function(e) {
+    // Tüm bina katmanlarını kontrol et
+    var features1906 = map.queryRenderedFeatures(e.point, { layers: ['1906binalarasil-7qmxa6'] });
+    var features1913 = map.queryRenderedFeatures(e.point, { layers: ['buildings-1913-bwjt8u'] });
+    var features1930 = map.queryRenderedFeatures(e.point, { layers: ['buildings-1930-layer'] });
+    var features1960 = map.queryRenderedFeatures(e.point, { layers: ['buildings-1960-layer'] });
+    var featuresArchaeology = map.queryRenderedFeatures(e.point, { layers: ['archaeological-2020-layer'] }); // ← Bu satırı ekleyin
+    
+    // Eğer hiçbir özellik yoksa (boş alana tıklandıysa)
+    if (!features1906.length && !features1913.length && !features1930.length && !features1960.length && !featuresArchaeology.length) { // ← Bu satırı güncelleyin
+            // Seçili binayı temizle
+            selectedBuildingId = null;
+            selectedLayer = null;
+            
+            // Bilgi panelini temizle
+            document.querySelector('.info-none').style.display = 'flex';
+            document.querySelectorAll('.info-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Renkleri sıfırla
+            updateBuildingColors();
+        }
+    });
+
+
+// 1930 parselleri
+map.addSource('parcels-1930-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.2jcr04tk?v=' + Date.now()
+});
+
+map.addLayer({
+    'id': 'parcels-1930-layer',
+    'type': 'fill',
+    'source': 'parcels-1930-source',
+    'source-layer': 'prsl-30-4pxco6',
+     'minzoom': 5,
+    'maxzoom': 22,
+    'paint': {
+    'fill-color': '#58788C',
+    'fill-opacity': 0.1,
+
+},
+    'layout': {
+        'visibility': 'none'
+    }
+}, '1906parsel-axl9oq');
+
+// 1930 binaları
+map.addSource('buildings-1930-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.d994brc2?v=' + Date.now() 
+});
+
+map.addLayer({
+    'id': 'buildings-1930-layer',
+    'type': 'fill',
+    'source': 'buildings-1930-source',
+    'source-layer': 'bn-30-69wc8u',
+    'paint': {
+        'fill-color': '#c8d5e3',
+        'fill-opacity': 1
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+// 1960 kıyı çizgisi
+map.addSource('coastline-1960-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.8iotewpw'
+});
+
+map.addLayer({
+    'id': 'coastline-1960-layer',
+    'type': 'line',
+    'source': 'coastline-1960-source',
+    'source-layer': '66-ky-bgrz48',
+    'paint': {
+        'line-color': '#000000',
+        'line-width': 1
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+}, '1906kiyi-2b3yfo');
+// 1960 dolgu alanı
+map.addSource('landfill-1960-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.aontfpkc'
+});
+
+map.addLayer({
+    'id': 'landfill-1960-layer',
+    'type': 'fill',
+    'source': 'landfill-1960-source',
+    'source-layer': '66-dolgu-8f013v',
+    'paint': {
+        'fill-color': '#ffffff',
+        'fill-opacity': 1
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+}, '1906dolgu-35dikl');  // ← 1906 dolgunun altına ekle
+// 1960 binaları
+map.addSource('buildings-1960-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.5ht5uiki'
+});
+
+map.addLayer({
+    'id': 'buildings-1960-layer',
+    'type': 'fill',
+    'source': 'buildings-1960-source',
+    'source-layer': '66-bina-4u3q0f',
+    'paint': {
+        'fill-color': '#c8d5e3',
+        'fill-opacity': 1
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+
+// 1960 tren rayları
+map.addSource('railway-1960-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.1gl58qtd'
+});
+
+map.addLayer({
+    'id': 'railway-1960-layer',
+    'type': 'line',
+    'source': 'railway-1960-source',
+    'source-layer': '66-tren-ray-7vpy5g',
+    'paint': {
+        'line-color': '#bcb8ae',
+        'line-width': 0.5
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+// 1913 rayları (1960 için yeniden çizilmiş)
+map.addSource('railway-1913-updated-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.76t1jp88'
+});
+
+map.addLayer({
+    'id': 'railway-1913-updated-layer',
+    'type': 'line',
+    'source': 'railway-1913-updated-source',
+    'source-layer': '66-13-ray-yeniden-cizimi-6576pb',
+    'paint': {
+        'line-color': '#bcb8ae',
+        'line-width': 0.5
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+// 1960 endüstriyel katmanı
+map.addSource('industrial-1960-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.9zow0zgj'
+});
+
+map.addLayer({
+    'id': 'industrial-1960-layer',
+    'type': 'fill',
+    'source': 'industrial-1960-source',
+    'source-layer': '60_endstriyel-2zaidu',
+    'paint': {
+        'fill-color': '#8B752E',
+        'fill-opacity': 0.1
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+}, '1906binalarasil-7qmxa6'); // ← En alt bina katmanının altına koy
+// 1960 yolları
+map.addSource('roads-1960-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.7kcwwfjw'
+});
+
+// Yol kontur (siyah dış çizgi)
+// Mevcut yol layer'larını silin ve yerine şunu yazın:
+
+// Yol alanları (fill olarak)
+map.addLayer({
+    'id': 'roads-1960-fill',
+    'type': 'fill',
+    'source': 'roads-1960-source',
+    'source-layer': '66-yol-8uxk1b',
+    'paint': {
+        'fill-color': '#ffffff',
+        'fill-opacity': 0.8
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+
+// Yol konturları (stroke olarak)
+map.addLayer({
+    'id': 'roads-1960-stroke',
+    'type': 'line',
+    'source': 'roads-1960-source',
+    'source-layer': '66-yol-8uxk1b',
+    'paint': {
+        'line-color': '#000000',
+        'line-width': 0.3
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+// 2020 kıyı çizgisi
+map.addSource('coastline-2020-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.5sz74fwk'
+});
+
+map.addLayer({
+    'id': 'coastline-2020-layer',
+    'type': 'line',
+    'source': 'coastline-2020-source',
+    'source-layer': 'ky_20-c9l8z7',
+    'paint': {
+        'line-color': '#000000',
+        'line-width': 1
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+    
+});
+// 2020 dolgu alanı
+map.addSource('landfill-2020-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.6xmem7ut'
+});
+
+map.addLayer({
+    'id': 'landfill-2020-layer',
+    'type': 'fill',
+    'source': 'landfill-2020-source',
+    'source-layer': '20-dolgu-7ds61d',
+    'paint': {
+        'fill-color': '#ffffff',
+        'fill-opacity': 1
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+}, '1906dolgu-35dikl'); // ← 2020 dolgusu en altta olsun
+// 2020 arkeolojik buluntular
+map.addSource('archaeological-2020-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.1bwszryk'
+});
+
+map.addLayer({
+    'id': 'archaeological-2020-layer',
+    'type': 'line',
+    'source': 'archaeological-2020-source',
+    'source-layer': 'sonn-4jkn8f',
+     'paint': {
+        'line-color': '#8B4513',  // Kahverengi ton
+        'line-width': 0.2,
+        'line-dasharray': [5, 5]  // Kesikli çizgi (3 piksel çizgi, 3 piksel boşluk)
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+// 2020 tren rayları
+map.addSource('railway-2020-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.580opx7z'
+});
+
+map.addLayer({
+    'id': 'railway-2020-layer',
+    'type': 'line',
+    'source': 'railway-2020-source',
+    'source-layer': 'railway_20-cefppw',
+    'paint': {
+        'line-color': '#bcb8ae',
+        'line-width': 0.5
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+// 2020 yolları
+map.addSource('roads-2020-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.aalwjh1b'
+});
+
+map.addLayer({
+    'id': 'roads-2020-layer',
+    'type': 'line',
+    'source': 'roads-2020-source',
+    'source-layer': 'highway-20-0bzk51',
+    'paint': {
+        'line-color': '#8c918f',
+        'line-width': 0.2
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+// 2020 binaları
+map.addSource('buildings-2020-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.5iedmgm2'
+});
+
+map.addLayer({
+    'id': 'buildings-2020-layer',
+    'type': 'fill',
+    'source': 'buildings-2020-source',
+    'source-layer': 'building_20-crcjhp',
+    'paint': {
+        'fill-color': '#c8d5e3',
+        'fill-opacity': 1
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+// 2020 residential yolları
+map.addSource('roads-residential-2020-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.27ydd08q'
+});
+
+map.addLayer({
+    'id': 'roads-residential-2020-layer',
+    'type': 'line',
+    'source': 'roads-residential-2020-source',
+    'source-layer': '20-road-residential-52d804',
+    'paint': {
+        'line-color': '#8c918f',
+        'line-width': 0.2
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+
+// 2020 railway platform
+map.addSource('railway-platform-2020-source', {
+    'type': 'vector',
+    'url': 'mapbox://duyguzunlarr.ay1xpziv'
+});
+
+map.addLayer({
+    'id': 'railway-platform-2020-layer',
+    'type': 'line',
+    'source': 'railway-platform-2020-source',
+    'source-layer': 'railway-platform-20-84d4pc',
+    'paint': {
+        'line-color': '#1f2a44',
+        'line-width': 0.5
+    
+    },
+    'layout': {
+        'visibility': 'none'
+    }
+});
+    // 1913 layer'ları başlangıçta gizle
+    map.setLayoutProperty('railway-1913-ajkhho', 'visibility', 'none');
+    map.setFilter('buildings-1913-bwjt8u', ['==', ['to-string', ['get', 'id']], '800']);
+    
+    // Varsayılan renkleri ayarla
+    updateBuildingColors();
+});
+
+// Timeline noktalarına click event'ini tanımla
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.timeline-point').forEach(point => {
+        point.addEventListener('click', handleTimelineClick);
+        console.log("Timeline noktası için event listener eklendi: " + point.getAttribute('data-year'));
+    });
+
+document.getElementById('closePopupBtn').addEventListener('click', function() {
+    document.getElementById('popupOverlay').style.display = 'none';
+    document.getElementById('explosionPopup').style.display = 'none';
+});
+
+document.getElementById('popupOverlay').addEventListener('click', function() {
+    document.getElementById('popupOverlay').style.display = 'none';
+    document.getElementById('explosionPopup').style.display = 'none';
+});
+
+});
+</script>
+</body>
+</html>
