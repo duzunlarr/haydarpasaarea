@@ -8,104 +8,106 @@
      <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
     <style>
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
 
-body { 
-    font-family: 'Roboto', sans-serif;
-    background-color: #f8f9fa;
-}
-
-/* Desktop Styles */
-.container {
-    display: flex;
-    flex-direction: column;
-    width: 1000px;
-    height: 650px;
-    margin: 20px auto;
-}
-
-#map { 
-    width: 600px;
-    height: 600px;
-    border: 1px solid #4673a0;
-    border-radius: 8px;
-}
-
-.main-content {
-    display: flex;
-    height: 600px;
-    gap: 20px;
-}
-
-#info-panel {
-    width: 400px;
-    height: 600px;
-    background-color: #ffffff;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 20px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-}
-
-.info-content {
-    width: 100%;
-    display: none;
-}
-
-.info-content.active {
-    display: block;
-}
-
-.info-title {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: #040d53;
-    text-align: center;
-}
-
-.info-detail {
-    font-size: 14px;
-    line-height: 1.6;
-    margin-bottom: 15px;
-    color: #555;
-    text-align: justify;
-}
-
-.info-image {
-    width: 100%;
-    max-width: 350px;
-    border-radius: 4px;
-    margin: 15px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.info-none {
-    display: flex;
-    height: 100%;
-    align-items: center;
-    justify-content: center;
-    color: #999;
-    font-style: italic;
-    text-align: center;
-}
-
-.image-source {
-    font-size: 10px;
-    font-style: italic;
-    color: #666;
-    margin-top: 3px;
-    text-align: right;
-}
-
-/* Timeline Desktop */
-.timeline-container {
+        body { 
+            margin: 0; 
+            padding: 0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 1000px;
+            height: 650px;
+        }
+        #map { 
+            position: relative; 
+            width: 600px;
+            height: 600px;
+            border: 1px solid #4673a0;
+            border-radius: 8px;
+        }
+        .main-content {
+            display: flex;
+            height: 600px;
+        }
+        #info-panel {
+            width: 400px;
+            height: 600px;
+            background-color: #f6f7f9;
+            border: 1px solid #4673a0;
+            border-radius: 8px;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+        }
+        .info-content {
+            width: 100%;
+            max-width: 100%; 
+            display: none;
+        }
+        .info-content.active {
+            display: block;
+        }
+        .info-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #040d53;
+            text-align: center;
+            width: 100%;
+        }
+        .info-detail {
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #555;
+            text-align: justify;
+            width: 100%;
+        }
+        .info-image {
+            width: 100%;
+            max-width: 350px;
+            border-radius: 4px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .info-none {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            width: 100%;
+        }
+        .mapboxgl-popup {
+            max-width: 300px;
+            font: 12px/20px 'Montserrat', Montserrat, Montserrat;
+        }
+        /* Mapbox logosu ve atıfları için stil düzenlemeleri */
+        .mapboxgl-ctrl-bottom-right,
+        .mapboxgl-ctrl-bottom-left {
+            display: none !important;
+        }
+        .image-source {
+            font-size: 10px;
+            font-style: italic;
+            color: #666;
+            margin-top: 3px;
+            text-align: right;
+        }
+        
+        /* Timeline styling */
+       .timeline-container {
     position: absolute;
     left: 20px;
     top: 50%;
@@ -113,12 +115,13 @@ body {
     width: 60px;
     height: 400px;
     z-index: 1000;
-    background: rgba(255,255,255,0.9);
-    border-radius: 8px;
-    padding: 10px 5px;
+    cursor: grab;
 }
 
-.timeline {
+.timeline-container:active {
+    cursor: grabbing;
+}
+       .timeline {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -137,8 +140,7 @@ body {
     background: #4673a0;
     transform: translateX(-50%);
 }
-
-.timeline-point {
+        .timeline-point {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -147,50 +149,34 @@ body {
     background: white;
     padding: 5px 0;
 }
-
-.timeline-dot {
+        .timeline-dot {
     width: 10px;
     height: 10px;
-    border-radius: 50%;
-    margin-bottom: 5px;
-    border: 2px solid #4673a0;
-    transition: all 0.3s ease;
-}
-
-.timeline-year {
+            border-radius: 50%;
+                    margin-bottom: 5px;
+            border: 2px solid #4673a0;
+            transition: all 0.3s ease;
+        }
+        .timeline-year {
     font-size: 11px;
     font-weight: 400;
     color: #4673a0;
+    font-family: 'Roboto', sans-serif;
 }
-
-.timeline-point.active .timeline-dot {
-    background-color: #040d53;
-    transform: scale(1.2);
-}
-
-.timeline-point.active .timeline-year {
-    color: #040d53;
-}
-
-.timeline-line {
-    flex-grow: 1;
-    height: 1px;
-    background-color: #4673a0;
-    margin: 0 5px;
-}
-
-/* Mapbox controls hide */
-.mapboxgl-ctrl-bottom-right,
-.mapboxgl-ctrl-bottom-left {
-    display: none !important;
-}
-
-.mapboxgl-popup {
-    max-width: 300px;
-    font: 12px/20px 'Roboto', sans-serif;
-}
-
-/* MOBILE RESPONSIVE */
+        .timeline-point.active .timeline-dot {
+            background-color: #040d53;
+            transform: scale(1.2);
+        }
+        .timeline-point.active .timeline-year {
+            color: #040d53;
+        }
+        .timeline-line {
+            flex-grow: 1;
+            height: 1px;
+            background-color: #4673a0;
+            margin: 0 5px;
+        }
+        /* MOBILE RESPONSIVE - En sona ekleyin */
 @media (max-width: 768px) {
     body {
         height: 100vh;
@@ -201,35 +187,31 @@ body {
         width: 100vw !important;
         height: 100vh !important;
         margin: 0 !important;
-        flex-direction: column;
+        justify-content: flex-start !important;
+        align-items: flex-start !important;
     }
     
     .main-content {
         flex-direction: column !important;
-        height: calc(100vh - 70px) !important;
-        gap: 0 !important;
+        height: calc(100vh - 80px) !important;
     }
     
     #map {
         width: 100% !important;
-        height: 60vh !important;
+        height: 50vh !important;
         border: none !important;
         border-radius: 0 !important;
-        /* Harita zoom kilitli */
-        touch-action: none !important;
     }
     
     #info-panel {
         width: 100% !important;
-        height: 40vh !important;
+        height: 50vh !important;
         border: none !important;
         border-radius: 0 !important;
-        border-top: 1px solid #e0e0e0 !important;
-        padding: 15px !important;
-        background-color: #ffffff !important;
+        padding: 10px !important;
+        font-size: 12px !important;
     }
     
-    /* Timeline mobile - bottom */
     .timeline-container {
         position: fixed !important;
         bottom: 0 !important;
@@ -238,19 +220,18 @@ body {
         top: auto !important;
         transform: none !important;
         width: 100% !important;
-        height: 70px !important;
-        background: #ffffff !important;
-        border-radius: 0 !important;
-        border-top: 1px solid #e0e0e0 !important;
+        height: 80px !important;
+        background: white !important;
         padding: 10px !important;
-        box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+        border-top: 1px solid #ddd !important;
+        z-index: 1001 !important;
     }
     
     .timeline {
         flex-direction: row !important;
-        justify-content: space-evenly !important;
+        justify-content: space-around !important;
         align-items: center !important;
-        height: 50px !important;
+        height: 60px !important;
     }
     
     .timeline::before {
@@ -263,39 +244,33 @@ body {
     }
     
     .timeline-dot {
-        width: 8px !important;
-        height: 8px !important;
+        width: 10px !important;
+        height: 10px !important;
         margin-bottom: 3px !important;
     }
     
     .timeline-year {
-        font-size: 9px !important;
-        font-weight: 500 !important;
+        font-size: 8px !important;
+        white-space: nowrap !important;
     }
     
     .timeline-line {
         display: none !important;
     }
     
-    /* Mobile text sizes */
     .info-title {
-        font-size: 18px !important;
-        margin-bottom: 8px !important;
+        font-size: 16px !important;
     }
     
     .info-detail {
-        font-size: 12px !important;
-        line-height: 1.5 !important;
+        font-size: 11px !important;
+        line-height: 1.4 !important;
     }
     
     .info-image {
-        max-width: 280px !important;
-        margin: 10px auto !important;
+        max-width: 250px !important;
+        margin: 8px auto !important;
         display: block !important;
-    }
-    
-    .image-source {
-        font-size: 9px !important;
     }
 }
     </style>
@@ -735,12 +710,6 @@ var map = new mapboxgl.Map({
     zoom: 15,
     attributionControl: false
 });
-// Tüm zoom kontrollerini kapat
-map.scrollZoom.disable();
-map.boxZoom.disable();
-map.doubleClickZoom.disable();
-map.touchZoomRotate.disable();
-map.keyboard.disable();
 
 // Hover için popup
 var popup = new mapboxgl.Popup({
