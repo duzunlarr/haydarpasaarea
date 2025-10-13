@@ -9,34 +9,48 @@
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
     <style>
 
-        body { 
-            margin: 0; 
-            padding: 0; 
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: 'Roboto', sans-serif;
+            background-color: #eef1f6;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow-x: hidden;
         }
         .container {
+            position: relative;
             display: flex;
             flex-direction: column;
-            width: 1000px;
-            height: 650px;
-        }
-        #map { 
-            position: relative; 
-            width: 600px;
-            height: 600px;
-            border: 1px solid #4673a0;
-            border-radius: 8px;
+            gap: 20px;
+            padding-left: 80px;
+            width: min(100%, 1100px);
+            height: min(720px, 100vh - 48px);
+            box-sizing: border-box;
         }
         .main-content {
             display: flex;
-            height: 600px;
+            gap: 20px;
+            height: 100%;
+            min-height: 0;
+            flex: 1 1 auto;
+        }
+        #map {
+            position: relative;
+            flex: 1 1 0;
+            min-width: 0;
+            min-height: 0;
+            background-color: #fff;
+            border: 1px solid #4673a0;
+            border-radius: 8px;
         }
         #info-panel {
-            width: 400px;
-            height: 600px;
+            flex: 0 0 36%;
+            max-width: 420px;
+            height: 100%;
             background-color: #f6f7f9;
             border: 1px solid #4673a0;
             border-radius: 8px;
@@ -177,108 +191,133 @@
             margin: 0 5px;
         }
         /* MOBILE RESPONSIVE - En sona ekleyin */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     body {
-        height: 100vh;
-        overflow: hidden;
+        padding: 16px;
     }
-    
+
     .container {
-        width: 100vw !important;
-        height: 100vh !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: flex-start !important;
-        align-items: flex-start !important;
+        height: auto;
+        min-height: calc(100vh - 32px);
+        padding-left: 80px;
     }
-    
+
     .main-content {
-        flex-direction: column !important;
-        height: calc(100vh - 80px) !important;
-        flex: 1 !important;
+        height: auto;
     }
-    
+
     #map {
-    width: 100% !important;
-    height: 60vh !important;
-    border: none !important;
-    border-radius: 0 !important;
-     flex-shrink: 0 !important;
+        max-width: none;
+    }
 }
 
-#info-panel {
-    width: 100% !important;
-    height: calc(40vh - 80px) !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 10px !important;
-    font-size: 12px !important;
-    flex: 1 !important;
-    min-height: 150px !important;
-}
-    
+@media (max-width: 768px) {
+    body {
+        display: block;
+        padding: 0;
+        background-color: #fff;
+    }
+
+    .container {
+        height: auto;
+        width: 100%;
+        min-height: 100vh;
+        gap: 0;
+        padding-left: 0;
+    }
+
+    .main-content {
+        flex-direction: column;
+        gap: 0;
+        padding-bottom: 100px;
+        min-height: 0;
+    }
+
+    #map {
+        width: 100%;
+        height: 60vh;
+        border-radius: 0;
+        border-width: 0 0 1px 0;
+        flex: none;
+    }
+
+    #info-panel {
+        flex: none;
+        width: 100%;
+        max-width: none;
+        height: auto;
+        min-height: 45vh;
+        border-radius: 0;
+        border-width: 0;
+        padding: 16px;
+        font-size: 12px;
+    }
+
     .timeline-container {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        top: auto !important;
-        transform: none !important;
-        width: 100% !important;
-        height: 80px !important;
-        background: white !important;
-        padding: 10px !important;
-        border-top: 1px solid #ddd !important;
-        z-index: 1001 !important;
-        box-sizing: border-box !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        transform: none;
+        width: 100%;
+        height: 88px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 12px 16px;
+        border-top: 1px solid #d7dfe7;
+        z-index: 1001;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
-    
+
     .timeline {
-        flex-direction: row !important;
-        justify-content: space-around !important;
-        align-items: center !important;
-        height: 60px !important;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        max-width: 500px;
+        height: auto;
     }
-    
+
     .timeline::before {
-        display: none !important;
+        display: none;
     }
-    
+
     .timeline-point {
-        text-align: center !important;
-        padding: 5px !important;
+        text-align: center;
+        padding: 4px;
     }
-    
+
     .timeline-dot {
-        width: 10px !important;
-        height: 10px !important;
-        margin-bottom: 3px !important;
+        width: 12px;
+        height: 12px;
+        margin-bottom: 4px;
     }
-    
+
     .timeline-year {
-        font-size: 8px !important;
-        white-space: nowrap !important;
+        font-size: 10px;
+        white-space: nowrap;
     }
-    
+
     .timeline-line {
-        display: none !important;
+        display: none;
     }
-    
+
     .info-title {
-        font-size: 16px !important;
+        font-size: 18px;
     }
-    
+
     .info-detail {
-        font-size: 11px !important;
-        line-height: 1.4 !important;
+        font-size: 12px;
+        line-height: 1.45;
     }
-    
+
     .info-image {
-        max-width: 250px !important;
-        margin: 8px auto !important;
-        display: block !important;
+        max-width: 100%;
+        margin: 12px auto;
+        display: block;
     }
 }
     </style>
@@ -712,11 +751,15 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiZHV5Z3V6dW5sYXJyIiwiYSI6ImNtN3E0Z2NpNDBsaXgya
 
 // Haritayı oluştur
 var map = new mapboxgl.Map({
-    container: 'map', 
+    container: 'map',
     style: 'mapbox://styles/duyguzunlarr/cm7rvr8yo012w01s29tkp85k9',
     center: [29.0232, 40.9985],
     zoom: 15,
     attributionControl: false
+});
+
+window.addEventListener('resize', () => {
+    map.resize();
 });
 
 // Hover için popup
