@@ -176,11 +176,12 @@
             background-color: #4673a0;
             margin: 0 5px;
         }
-        /* MOBILE RESPONSIVE - En sona ekleyin */
+        /* MOBILE RESPONSIVE - Geliştirilmiş Versiyon */
 @media (max-width: 768px) {
     body {
         height: 100vh;
         overflow: hidden;
+        touch-action: pan-y pinch-zoom;
     }
     
     .container {
@@ -190,34 +191,32 @@
         padding: 0 !important;
         display: flex !important;
         flex-direction: column !important;
-        justify-content: flex-start !important;
-        align-items: flex-start !important;
     }
     
     .main-content {
         flex-direction: column !important;
-        height: calc(100vh - 80px) !important;
-        flex: 1 !important;
+        height: calc(100vh - 70px) !important;
+        width: 100% !important;
     }
     
     #map {
-    width: 100% !important;
-    height: 60vh !important;
-    border: none !important;
-    border-radius: 0 !important;
-     flex-shrink: 0 !important;
-}
+        width: 100% !important;
+        height: 55vh !important;
+        border: none !important;
+        border-radius: 0 !important;
+        flex-shrink: 0 !important;
+    }
 
-#info-panel {
-    width: 100% !important;
-    height: calc(40vh - 80px) !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 10px !important;
-    font-size: 12px !important;
-    flex: 1 !important;
-    min-height: 150px !important;
-}
+    #info-panel {
+        width: 100% !important;
+        height: calc(45vh - 70px) !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 15px !important;
+        font-size: 13px !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
     
     .timeline-container {
         position: fixed !important;
@@ -227,19 +226,21 @@
         top: auto !important;
         transform: none !important;
         width: 100% !important;
-        height: 80px !important;
+        height: 70px !important;
         background: white !important;
-        padding: 10px !important;
+        padding: 8px 5px !important;
         border-top: 1px solid #ddd !important;
         z-index: 1001 !important;
         box-sizing: border-box !important;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
     }
     
     .timeline {
         flex-direction: row !important;
         justify-content: space-around !important;
         align-items: center !important;
-        height: 60px !important;
+        height: 100% !important;
+        width: 100% !important;
     }
     
     .timeline::before {
@@ -248,18 +249,20 @@
     
     .timeline-point {
         text-align: center !important;
-        padding: 5px !important;
+        padding: 3px !important;
+        flex: 1 !important;
     }
     
     .timeline-dot {
-        width: 10px !important;
-        height: 10px !important;
-        margin-bottom: 3px !important;
+        width: 12px !important;
+        height: 12px !important;
+        margin: 0 auto 4px auto !important;
     }
     
     .timeline-year {
-        font-size: 8px !important;
+        font-size: 10px !important;
         white-space: nowrap !important;
+        font-weight: 500 !important;
     }
     
     .timeline-line {
@@ -267,18 +270,76 @@
     }
     
     .info-title {
-        font-size: 16px !important;
+        font-size: 18px !important;
+        margin-bottom: 8px !important;
     }
     
     .info-detail {
-        font-size: 11px !important;
-        line-height: 1.4 !important;
+        font-size: 13px !important;
+        line-height: 1.5 !important;
+        margin-bottom: 12px !important;
     }
     
     .info-image {
-        max-width: 250px !important;
-        margin: 8px auto !important;
+        max-width: 100% !important;
+        margin: 10px 0 !important;
         display: block !important;
+    }
+    
+    .image-source {
+        font-size: 9px !important;
+    }
+    
+    .info-none {
+        font-size: 14px !important;
+    }
+    
+    /* Popup için mobile uyum */
+    .explosion-popup {
+        width: 90% !important;
+        max-width: 90% !important;
+        padding: 15px !important;
+    }
+    
+    .explosion-popup-title {
+        font-size: 16px !important;
+    }
+    
+    .explosion-popup-content {
+        font-size: 13px !important;
+    }
+    
+    /* Mapbox popup mobile uyum */
+    .mapboxgl-popup-content {
+        font-size: 12px !important;
+        padding: 8px !important;
+    }
+}
+
+/* Tablet için ekstra ayarlar */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .container {
+        width: 100vw;
+        height: 100vh;
+    }
+    
+    .main-content {
+        flex-direction: row;
+    }
+    
+    #map {
+        width: 60% !important;
+        height: 100% !important;
+    }
+    
+    #info-panel {
+        width: 40% !important;
+        height: 100% !important;
+    }
+    
+    .timeline-container {
+        left: 10px !important;
+        width: 50px !important;
     }
 }
     </style>
@@ -715,8 +776,9 @@ var map = new mapboxgl.Map({
     container: 'map', 
     style: 'mapbox://styles/duyguzunlarr/cm7rvr8yo012w01s29tkp85k9',
     center: [29.0232, 40.9985],
-    zoom: 15,
-    attributionControl: false
+    zoom: window.innerWidth <= 768 ? 14.5 : 15,
+    attributionControl: false,
+    interactive: false          // Tüm etkileşimi kapat
 });
 
 // Hover için popup
